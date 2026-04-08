@@ -408,10 +408,12 @@ function HCTrader_CreateUI()
             local idx = this.entryIndex
             if idx > 0 and S.filteredData[idx] then
                 local entry = S.filteredData[idx]
-                if IsShiftKeyDown() and ChatFrameEditBox:IsVisible() then
+                if IsControlKeyDown() then
+                    DressUpItemLink(entry.itemLink)
+                elseif IsShiftKeyDown() and ChatFrameEditBox:IsVisible() then
                     ChatFrameEditBox:Insert(entry.itemLink)
                 elseif entry.message then
-                    DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00[" .. entry.sender .. "]|r: " .. entry.message)
+                    DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00[|Hplayer:" .. entry.sender .. "|h" .. entry.sender .. "|h]|r: " .. entry.message)
                 end
             end
         end)
