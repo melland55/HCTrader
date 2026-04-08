@@ -6,14 +6,14 @@ A trade monitoring addon for [Turtle WoW](https://turtle-wow.org/) (1.12 client)
 
 - **Real-time item logging** — automatically captures item links from Hardcore chat
 - **Buy / Sell tabs** — WTS messages (and untagged) go to the Buy tab, WTB messages go to the Sell tab, so you see what's relevant to you
-- **Click to view message** — click any item row to reprint the sender's original chat message, so you can see the full offer (prices, conditions, etc.)
+- **Level parsing** — extracts player level from messages (e.g. "22+", "9+-") to show levels instantly without a /who query. Falls back to auto /who when no level pattern is found
+- **Free item highlighting** — listings containing "free" are highlighted with a golden background
+- **Item interactions** — hover an item to see its tooltip; click to view the original message; ctrl-click to preview in the dressing room; shift-click to link in chat
+- **Seller interactions** — click a seller name to whisper; shift-click to /who. Guildmates are highlighted in green
 - **Search** — filter by item name or seller name
 - **Level filter** — show only sellers within your tradeable level range (Turtle WoW enforces a +-5 level restriction on trading). Configurable range, toggle on/off
-- **Auto /who lookup** — automatically queries seller levels in the background, respecting the 30-second server cooldown. Includes a cooldown bar with timer and queue display
+- **Auto /who lookup** — automatically queries seller levels in the background when level can't be parsed from the message, respecting the 30-second server cooldown. Includes a cooldown bar with timer and queue display
 - **Persistent data** — items, seller info (level, race, guild, zone), and settings are saved across reloads and relogs
-- **Seller interaction** — click a seller name to whisper, shift-click to /who
-- **Faction icons** — displays Alliance/Horde icon next to each seller
-- **Item tooltips** — hover over an item to see its tooltip, shift-click to link in chat
 
 ## Installation
 
@@ -26,9 +26,9 @@ A trade monitoring addon for [Turtle WoW](https://turtle-wow.org/) (1.12 client)
 | Command | Description |
 |---------|-------------|
 | `/hct` | Toggle the HCTrader window |
-| `/tl clear` | Clear all logged items and player data |
-| `/tl level` | Toggle the level filter on/off |
-| `/tl range <n>` | Set level filter range (default: +-5) |
+| `/hct clear` | Clear all logged items and player data |
+| `/hct level` | Toggle the level filter on/off |
+| `/hct range <n>` | Set level filter range (default: +-5) |
 
 ## Screenshots
 
