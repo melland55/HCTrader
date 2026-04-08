@@ -142,10 +142,10 @@ function HCTrader_Init()
     HCTrader_CreateUI()
     HCTrader_RefreshFilter()
 
-    DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00HCTrader|r loaded. Type |cFFFFFF00/tl|r to toggle window.")
+    DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00HCTrader|r loaded. Type |cFFFFFF00/hct|r to toggle window.")
 
     SLASH_HCTRADER1 = "/hctrader"
-    SLASH_HCTRADER2 = "/tl"
+    SLASH_HCTRADER2 = "/hct"
     SlashCmdList["HCTRADER"] = function(msg)
         if msg == "clear" then
             HCTrader_Items = {}
