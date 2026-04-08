@@ -25,11 +25,13 @@ function HCTrader_CheckMessage(msg)
 
     -- Parse level from message (e.g. "9+-", "22+", "45-+", "10+/-")
     -- Strip item links first so numbers inside links don't match
+    local parsedLevel = nil
     local stripped = string.gsub(message, "|c%x+|Hitem:[^|]+|h%[[^%]]+%]|h|r", "")
     local _, _, levelStr = string.find(stripped, "(%d+)%s*[+-][+-/]*")
     if levelStr then
-        local parsedLevel = tonumber(levelStr)
-        if parsedLevel and parsedLevel >= 1 and parsedLevel <= 60 then
+        local num = tonumber(levelStr)
+        if num and num >= 1 and num <= 60 then
+            parsedLevel = num
             local existing = HCTrader_GetLevel(sender)
             if not existing then
                 HCTrader_SetPlayerField(sender, "level", parsedLevel)
@@ -48,6 +50,11 @@ function HCTrader_CheckMessage(msg)
         found = true
         local itemName = string.gsub(bracketName, "[%[%]]", "")
         local fullLink = "|c" .. color .. "|Hitem:" .. itemString .. "|h" .. bracketName .. "|h|r"
+
+        -- Queue /who only if we couldn't parse a level from the message
+        if not parsedLevel then
+            HCTrader_QueueWho(sender)
+        end
 
         -- Check for duplicate sender+item — remove old one
         local dupeIdx = nil
