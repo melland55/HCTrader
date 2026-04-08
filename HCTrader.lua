@@ -9,6 +9,7 @@ HCTrader_State = {
     rows = {},
     filteredData = {},
     searchText = "",
+    activeTab = "buy",
     levelFilterEnabled = false,
     lastMessageHash = "",
     lastRefreshTime = 0,

@@ -14,6 +14,15 @@ function HCTrader_CheckMessage(msg)
     local _, _, sender, message = string.find(msg, "%[Hardcore%]%s*|Hplayer:([^|]+)|h%[[^%]]+%]|h:%s*(.*)")
     if not sender then return end
 
+    -- Detect WTB/WTS (case insensitive) for trade type classification
+    -- WTS (want to sell) → "buy" tab (you can buy from them)
+    -- WTB (want to buy) → "sell" tab (you can sell to them)
+    local msgLower = string.lower(message)
+    local tradeType = "buy"
+    if string.find(msgLower, "wtb") then
+        tradeType = "sell"
+    end
+
     -- Extract item links from the message portion
     -- Item link format: |cXXXXXXXX|Hitem:...|h[ItemName]|h|r
     local found = false
@@ -50,6 +59,8 @@ function HCTrader_CheckMessage(msg)
             sender = sender,
             time = date("%H:%M"),
             timestamp = time(),
+            tradeType = tradeType,
+            message = message,
         }
         table.insert(HCTrader_Items, 1, entry)
 

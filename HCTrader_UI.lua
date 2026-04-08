@@ -14,6 +14,10 @@ function HCTrader_PassesLevelFilter(entry)
     return math.abs(sellerLevel - myLevel) <= range
 end
 
+function HCTrader_PassesTabFilter(entry)
+    return entry.tradeType == HCTrader_State.activeTab
+end
+
 function HCTrader_RefreshFilter()
     local S = HCTrader_State
     S.filteredData = {}
@@ -22,7 +26,7 @@ function HCTrader_RefreshFilter()
         local matchesSearch = S.searchText == "" or
             string.find(string.lower(entry.itemName), S.searchText, 1, true) or
             string.find(string.lower(entry.sender), S.searchText, 1, true)
-        if matchesSearch and HCTrader_PassesLevelFilter(entry) then
+        if matchesSearch and HCTrader_PassesTabFilter(entry) and HCTrader_PassesLevelFilter(entry) then
             table.insert(S.filteredData, entry)
         end
     end
@@ -73,6 +77,23 @@ function HCTrader_UpdateLevelButton()
     end
 end
 
+function HCTrader_UpdateTabs()
+    local S = HCTrader_State
+    local tabs = { "buy", "sell" }
+    for i = 1, 2 do
+        local btn = getglobal("HCTraderTab" .. tabs[i])
+        if btn then
+            if S.activeTab == tabs[i] then
+                btn:SetTextColor(1, 1, 1)
+                btn:LockHighlight()
+            else
+                btn:SetTextColor(0.6, 0.6, 0.6)
+                btn:UnlockHighlight()
+            end
+        end
+    end
+end
+
 -- ============================================================
 -- Main UI Creation
 -- ============================================================
@@ -110,6 +131,42 @@ function HCTrader_CreateUI()
     local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOP", f, "TOP", 0, -15)
     title:SetText("HCTrader")
+
+    -- Tab buttons (Buy / Sell)
+    local tabNames = { "buy", "sell" }
+    local tabLabels = { "Buy", "Sell" }
+    local prevTab = nil
+    for i = 1, 2 do
+        local tab = CreateFrame("Button", "HCTraderTab" .. tabNames[i], f)
+        tab:SetWidth(40)
+        tab:SetHeight(18)
+        tab.text = tab:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        tab.text:SetPoint("CENTER", tab, "CENTER", 0, 0)
+        tab.text:SetText(tabLabels[i])
+        tab.SetTextColor = function(self, r, g, b)
+            self.text:SetTextColor(r, g, b)
+        end
+        tab.tabName = tabNames[i]
+        if i == 1 then
+            tab:SetPoint("TOPLEFT", f, "TOPLEFT", 20, -15)
+        else
+            tab:SetPoint("LEFT", prevTab, "RIGHT", 4, 0)
+        end
+
+        local hl = tab:CreateTexture(nil, "HIGHLIGHT")
+        hl:SetAllPoints(tab)
+        hl:SetTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
+        hl:SetBlendMode("ADD")
+        hl:SetAlpha(0.3)
+
+        tab:SetScript("OnClick", function()
+            S.activeTab = this.tabName
+            HCTrader_UpdateTabs()
+            HCTrader_RefreshFilter()
+        end)
+        prevTab = tab
+    end
+    HCTrader_UpdateTabs()
 
     -- Status text
     local status = f:CreateFontString("HCTraderStatus", "OVERLAY", "GameFontNormalSmall")
@@ -350,8 +407,11 @@ function HCTrader_CreateUI()
         row:SetScript("OnClick", function()
             local idx = this.entryIndex
             if idx > 0 and S.filteredData[idx] then
+                local entry = S.filteredData[idx]
                 if IsShiftKeyDown() and ChatFrameEditBox:IsVisible() then
-                    ChatFrameEditBox:Insert(S.filteredData[idx].itemLink)
+                    ChatFrameEditBox:Insert(entry.itemLink)
+                elseif entry.message then
+                    DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00[" .. entry.sender .. "]|r: " .. entry.message)
                 end
             end
         end)
@@ -443,7 +503,8 @@ function HCTrader_UpdateStatus()
     local S = HCTrader_State
     local total = table.getn(HCTrader_Items)
     local shown = table.getn(S.filteredData)
-    if S.searchText ~= "" or S.levelFilterEnabled then
+    local filtering = S.searchText ~= "" or S.levelFilterEnabled
+    if filtering then
         HCTraderStatus:SetText(shown .. " / " .. total .. " items")
     else
         HCTraderStatus:SetText(total .. " items")
