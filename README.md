@@ -25,7 +25,7 @@ A trade monitoring addon for [Turtle WoW](https://turtle-wow.org/) (1.12 client)
 
 | Command | Description |
 |---------|-------------|
-| `/tl` | Toggle the HCTrader window |
+| `/hct` | Toggle the HCTrader window |
 | `/tl clear` | Clear all logged items and player data |
 | `/tl level` | Toggle the level filter on/off |
 | `/tl range <n>` | Set level filter range (default: +-5) |
