@@ -328,16 +328,47 @@ function HCTrader_CreateUI()
         row.timeText:SetJustifyH("LEFT")
         row.timeText:SetTextColor(0.6, 0.6, 0.6)
 
-        row.itemText = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        row.itemText:SetPoint("LEFT", row.timeText, "RIGHT", 4, 0)
-        row.itemText:SetWidth(200)
-        row.itemText:SetJustifyH("LEFT")
+        -- Item name as a clickable button (for tooltip and shift-click)
+        row.itemBtn = CreateFrame("Button", "HCTraderRow" .. i .. "Item", row)
+        row.itemBtn:SetHeight(C.ROW_HEIGHT)
+        row.itemBtn:SetWidth(200)
+        row.itemBtn:SetPoint("LEFT", row.timeText, "RIGHT", 4, 0)
+        row.itemBtn.text = row.itemBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        row.itemBtn.text:SetPoint("LEFT", row.itemBtn, "LEFT", 0, 0)
+        row.itemBtn.text:SetWidth(200)
+        row.itemBtn.text:SetJustifyH("LEFT")
+        row.itemBtn.row = row
+        row.itemBtn:SetScript("OnClick", function()
+            local idx = this.row.entryIndex
+            if idx > 0 and S.filteredData[idx] then
+                local entry = S.filteredData[idx]
+                if IsControlKeyDown() then
+                    DressUpItemLink(entry.itemLink)
+                elseif IsShiftKeyDown() and ChatFrameEditBox:IsVisible() then
+                    ChatFrameEditBox:Insert(entry.itemLink)
+                elseif entry.message then
+                    DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00[|Hplayer:" .. entry.sender .. "|h" .. entry.sender .. "|h]|r: " .. entry.message)
+                end
+            end
+        end)
+        row.itemBtn:SetScript("OnEnter", function()
+            local idx = this.row.entryIndex
+            if idx > 0 and S.filteredData[idx] then
+                GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
+                GameTooltip:SetHyperlink(S.filteredData[idx].itemString)
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine("Click: view message", 0.5, 0.5, 0.5)
+                GameTooltip:AddLine("Ctrl-click: inspect item", 0.5, 0.5, 0.5)
+                GameTooltip:Show()
+            end
+        end)
+        row.itemBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
         -- Seller name as a clickable button
         row.sellerBtn = CreateFrame("Button", "HCTraderRow" .. i .. "Seller", row)
         row.sellerBtn:SetHeight(C.ROW_HEIGHT)
         row.sellerBtn:SetWidth(120)
-        row.sellerBtn:SetPoint("LEFT", row.itemText, "RIGHT", 4, 0)
+        row.sellerBtn:SetPoint("LEFT", row.itemBtn, "RIGHT", 4, 0)
         row.sellerBtn.text = row.sellerBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         row.sellerBtn.text:SetPoint("LEFT", row.sellerBtn, "LEFT", 0, 0)
         row.sellerBtn.text:SetWidth(120)
@@ -410,8 +441,6 @@ function HCTrader_CreateUI()
                 local entry = S.filteredData[idx]
                 if IsControlKeyDown() then
                     DressUpItemLink(entry.itemLink)
-                elseif IsShiftKeyDown() and ChatFrameEditBox:IsVisible() then
-                    ChatFrameEditBox:Insert(entry.itemLink)
                 elseif entry.message then
                     DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00[|Hplayer:" .. entry.sender .. "|h" .. entry.sender .. "|h]|r: " .. entry.message)
                 end
@@ -420,9 +449,10 @@ function HCTrader_CreateUI()
 
         row:SetScript("OnEnter", function()
             local idx = this.entryIndex
-            if idx > 0 and S.filteredData[idx] then
+            if idx > 0 then
                 GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
-                GameTooltip:SetHyperlink(S.filteredData[idx].itemString)
+                GameTooltip:AddLine("Click: view message", 0.5, 0.5, 0.5)
+                GameTooltip:AddLine("Ctrl-click: inspect item", 0.5, 0.5, 0.5)
                 GameTooltip:Show()
             end
         end)
@@ -463,7 +493,7 @@ function HCTrader_ScrollUpdate()
                 timeStr = ago .. "m"
             end
             row.timeText:SetText(timeStr)
-            row.itemText:SetText(entry.itemLink)
+            row.itemBtn.text:SetText(entry.itemLink)
             row.sellerBtn.text:SetText(entry.sender)
             local sellerGuild = HCTrader_GetPlayerField(entry.sender, "guild")
             local myGuild = GetGuildInfo("player")
@@ -493,7 +523,7 @@ function HCTrader_ScrollUpdate()
             row:Show()
         else
             row.timeText:SetText("")
-            row.itemText:SetText("")
+            row.itemBtn.text:SetText("")
             row.sellerBtn.text:SetText("")
             row.levelText:SetText("")
             row.factionIcon:Hide()
