@@ -49,9 +49,6 @@ function HCTrader_CheckMessage(msg)
         local itemName = string.gsub(bracketName, "[%[%]]", "")
         local fullLink = "|c" .. color .. "|Hitem:" .. itemString .. "|h" .. bracketName .. "|h|r"
 
-        -- Queue level lookup
-        HCTrader_QueueWho(sender)
-
         -- Check for duplicate sender+item — remove old one
         local dupeIdx = nil
         for i = 1, table.getn(HCTrader_Items) do
