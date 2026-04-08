@@ -382,7 +382,15 @@ function HCTrader_ScrollUpdate()
         if idx <= numEntries then
             local entry = S.filteredData[idx]
             local ago = math.floor((time() - entry.timestamp) / 60)
-            row.timeText:SetText(ago .. "m")
+            local timeStr
+            if ago >= 60 then
+                local h = math.floor(ago / 60)
+                local m = ago - h * 60
+                timeStr = h .. "h " .. m .. "m"
+            else
+                timeStr = ago .. "m"
+            end
+            row.timeText:SetText(timeStr)
             row.itemText:SetText(entry.itemLink)
             row.sellerBtn.text:SetText(entry.sender)
             local lvl = HCTrader_GetLevel(entry.sender)
