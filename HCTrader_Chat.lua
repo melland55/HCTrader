@@ -23,6 +23,20 @@ function HCTrader_CheckMessage(msg)
         tradeType = "sell"
     end
 
+    -- Parse level from message (e.g. "9+-", "22+", "45-+", "10+/-")
+    -- Strip item links first so numbers inside links don't match
+    local stripped = string.gsub(message, "|c%x+|Hitem:[^|]+|h%[[^%]]+%]|h|r", "")
+    local _, _, levelStr = string.find(stripped, "(%d+)%s*[+-][+-/]*")
+    if levelStr then
+        local parsedLevel = tonumber(levelStr)
+        if parsedLevel and parsedLevel >= 1 and parsedLevel <= 60 then
+            local existing = HCTrader_GetLevel(sender)
+            if not existing then
+                HCTrader_SetPlayerField(sender, "level", parsedLevel)
+            end
+        end
+    end
+
     -- Extract item links from the message portion
     -- Item link format: |cXXXXXXXX|Hitem:...|h[ItemName]|h|r
     local found = false
