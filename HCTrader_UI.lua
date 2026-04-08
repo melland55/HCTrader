@@ -322,6 +322,12 @@ function HCTrader_CreateUI()
             row:SetPoint("TOPLEFT", S.rows[i - 1], "BOTTOMLEFT", 0, 0)
         end
 
+        row.freeBg = row:CreateTexture(nil, "BACKGROUND")
+        row.freeBg:SetAllPoints(row)
+        row.freeBg:SetTexture("Interface\\Buttons\\UI-Listbox-Highlight2")
+        row.freeBg:SetVertexColor(1.0, 0.82, 0.0, 0.25)
+        row.freeBg:Hide()
+
         row.timeText = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         row.timeText:SetPoint("LEFT", row, "LEFT", 2, 0)
         row.timeText:SetWidth(38)
@@ -519,6 +525,11 @@ function HCTrader_ScrollUpdate()
             else
                 row.factionIcon:Hide()
             end
+            if entry.message and string.find(string.lower(entry.message), "free") then
+                row.freeBg:Show()
+            else
+                row.freeBg:Hide()
+            end
             row.entryIndex = idx
             row:Show()
         else
@@ -527,6 +538,7 @@ function HCTrader_ScrollUpdate()
             row.sellerBtn.text:SetText("")
             row.levelText:SetText("")
             row.factionIcon:Hide()
+            row.freeBg:Hide()
             row.entryIndex = 0
             row:Hide()
         end
