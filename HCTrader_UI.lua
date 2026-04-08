@@ -198,6 +198,16 @@ function HCTrader_CreateUI()
     whoBarText:SetPoint("CENTER", whoBar, "CENTER", 0, 0)
     whoBarText:SetTextColor(1, 1, 1)
 
+    whoBar:EnableMouse(true)
+    whoBar:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
+        GameTooltip:SetText("/who cooldown")
+        GameTooltip:Show()
+    end)
+    whoBar:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+
     -- Auto-fetch toggle
     local autoBtn = CreateFrame("Button", "HCTraderAutoFetchBtn", f, "UIPanelButtonTemplate")
     autoBtn:SetWidth(45)
