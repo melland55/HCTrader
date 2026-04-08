@@ -465,6 +465,13 @@ function HCTrader_ScrollUpdate()
             row.timeText:SetText(timeStr)
             row.itemText:SetText(entry.itemLink)
             row.sellerBtn.text:SetText(entry.sender)
+            local sellerGuild = HCTrader_GetPlayerField(entry.sender, "guild")
+            local myGuild = GetGuildInfo("player")
+            if myGuild and sellerGuild and sellerGuild == myGuild then
+                row.sellerBtn.text:SetTextColor(0.2, 1.0, 0.2)
+            else
+                row.sellerBtn.text:SetTextColor(0.8, 0.8, 0.2)
+            end
             local lvl = HCTrader_GetLevel(entry.sender)
             if lvl then
                 row.levelText:SetText(tostring(lvl))
