@@ -5,6 +5,8 @@ A trade monitoring addon for [Turtle WoW](https://turtle-wow.org/) (1.12 client)
 ## Features
 
 - **Real-time item logging** — automatically captures item links from Hardcore chat
+- **Buy / Sell tabs** — WTS messages (and untagged) go to the Buy tab, WTB messages go to the Sell tab, so you see what's relevant to you
+- **Click to view message** — click any item row to reprint the sender's original chat message, so you can see the full offer (prices, conditions, etc.)
 - **Search** — filter by item name or seller name
 - **Level filter** — show only sellers within your tradeable level range (Turtle WoW enforces a +-5 level restriction on trading). Configurable range, toggle on/off
 - **Auto /who lookup** — automatically queries seller levels in the background, respecting the 30-second server cooldown. Includes a cooldown bar with timer and queue display
