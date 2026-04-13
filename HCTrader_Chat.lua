@@ -17,11 +17,17 @@ function HCTrader_CheckMessage(msg)
     -- Detect WTB/WTS (case insensitive) for trade type classification
     -- WTS (want to sell) → "buy" tab (you can buy from them)
     -- WTB (want to buy) → "sell" tab (you can sell to them)
+    -- No tag → skip (not shown in either tab)
     local msgLower = string.lower(message)
-    local tradeType = "buy"
+    local tradeType = nil
     if string.find(msgLower, "wtb") then
         tradeType = "sell"
+    elseif string.find(msgLower, "wts") then
+        tradeType = "buy"
     end
+
+    -- Skip messages with no WTB/WTS tag
+    if not tradeType then return end
 
     -- Parse level from message (e.g. "9+-", "22+", "45-+", "10+/-")
     -- Strip item links first so numbers inside links don't match
