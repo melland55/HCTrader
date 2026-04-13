@@ -17,6 +17,13 @@ HCTrader_Defaults = {
     maxItems = 500,
     expiryHours = 24,
     windowScale = 100,
+    -- Watchlist notification settings
+    alertSound = "RaidWarning",
+    alertChat = true,
+    alertCenterText = false,
+    alertRaidWarning = true,
+    alertScreenFlash = false,
+    alertThrottleSeconds = 30,
 }
 
 -- ============================================================
@@ -135,6 +142,9 @@ function HCTrader_CreateOptionsPanel()
     f:SetWidth(320)
     f:SetHeight(410)
     f:SetPoint("TOPLEFT", HCTraderFrame, "TOPRIGHT", -2, 0)
+    if HCTrader_Settings.windowScale then
+        f:SetScale(HCTrader_Settings.windowScale / 100)
+    end
     f:SetBackdrop({
         bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
@@ -363,17 +373,42 @@ function HCTrader_CreateOptionsPanel()
 
     yOff = yOff - 52
 
-    CreateSliderRow(f, "HCTraderOpt_WindowScale", 20, yOff,
+    local scaleSlider = CreateSliderRow(f, "HCTraderOpt_WindowScale", 20, yOff,
         "Window Scale:", "Scale of the main HCTrader window.",
         50, 150, 5,
         function() return HCTrader_Settings.windowScale end,
         function(val)
             HCTrader_Settings.windowScale = val
-            if HCTraderFrame then
-                HCTraderFrame:SetScale(val / 100)
-            end
         end,
         function(v) return v .. "%" end)
+
+    local function ApplyWindowScale()
+        if not HCTraderFrame then return end
+        local oldScale = HCTraderFrame:GetScale()
+        local newScale = HCTrader_Settings.windowScale / 100
+        if oldScale == newScale then return end
+        local cx, cy = HCTraderFrame:GetCenter()
+        local screenX = cx * oldScale
+        local screenY = cy * oldScale
+        HCTraderFrame:SetScale(newScale)
+        HCTraderFrame:ClearAllPoints()
+        HCTraderFrame:SetPoint("CENTER", UIParent, "BOTTOMLEFT",
+            screenX / newScale, screenY / newScale)
+        if HCTraderOptionsFrame then
+            HCTraderOptionsFrame:SetScale(newScale)
+        end
+        if HCTraderWatchlistFrame then
+            HCTraderWatchlistFrame:SetScale(newScale)
+        end
+    end
+
+    scaleSlider:SetScript("OnMouseUp", function() ApplyWindowScale() end)
+    -- Also apply on mouse wheel (fires individual value changes)
+    local origWheel = scaleSlider:GetScript("OnMouseWheel")
+    scaleSlider:SetScript("OnMouseWheel", function()
+        origWheel()
+        ApplyWindowScale()
+    end)
 
     -- ── Defaults button ──
 
@@ -410,7 +445,21 @@ function HCTrader_ResetDefaults()
     HCTrader_UpdateAutoFetchButton()
     HCTrader_RefreshFilter()
     if HCTraderFrame then
-        HCTraderFrame:SetScale(HCTrader_Defaults.windowScale / 100)
+        local oldScale = HCTraderFrame:GetScale()
+        local newScale = HCTrader_Defaults.windowScale / 100
+        local cx, cy = HCTraderFrame:GetCenter()
+        local screenX = cx * oldScale
+        local screenY = cy * oldScale
+        HCTraderFrame:SetScale(newScale)
+        HCTraderFrame:ClearAllPoints()
+        HCTraderFrame:SetPoint("CENTER", UIParent, "BOTTOMLEFT",
+            screenX / newScale, screenY / newScale)
+        if HCTraderOptionsFrame then
+            HCTraderOptionsFrame:SetScale(newScale)
+        end
+        if HCTraderWatchlistFrame then
+            HCTraderWatchlistFrame:SetScale(newScale)
+        end
     end
 
     -- Refresh options panel checkboxes and sliders
@@ -480,6 +529,10 @@ function HCTrader_ToggleOptions()
     if HCTraderOptionsFrame:IsVisible() then
         HCTraderOptionsFrame:Hide()
     else
+        -- Hide watchlist panel to avoid overlap
+        if HCTraderWatchlistFrame and HCTraderWatchlistFrame:IsVisible() then
+            HCTraderWatchlistFrame:Hide()
+        end
         -- Reposition next to the main frame each time
         HCTraderOptionsFrame:ClearAllPoints()
         HCTraderOptionsFrame:SetPoint("TOPLEFT", HCTraderFrame, "TOPRIGHT", -2, 0)
