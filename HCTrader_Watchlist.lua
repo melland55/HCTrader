@@ -49,46 +49,93 @@ end
 -- ============================================================
 
 local flashFrame = nil
-local flashAlpha = 0
-local flashFading = false
+local flashElapsed = 0
+local flashActive = false
+local FLASH_PULSES = 2
+local FLASH_PULSE_TIME = 0.6
+local FLASH_MAX_ALPHA = 0.5
+local FLASH_EDGE_SIZE = 60
 
 local function GetOrCreateFlashFrame()
     if flashFrame then return flashFrame end
     flashFrame = CreateFrame("Frame", "HCTraderFlashFrame", UIParent)
-    flashFrame:SetFrameStrata("FULLSCREEN_DIALOG")
+    flashFrame:SetFrameStrata("TOOLTIP")
+    flashFrame:SetFrameLevel(10)
     flashFrame:SetAllPoints(UIParent)
     flashFrame:EnableMouse(false)
 
-    flashFrame.texture = flashFrame:CreateTexture(nil, "BACKGROUND")
-    flashFrame.texture:SetTexture("Interface\\FullScreenTextures\\OutOfControl")
-    flashFrame.texture:SetBlendMode("ADD")
-    flashFrame.texture:SetAllPoints(flashFrame)
-    flashFrame.texture:SetVertexColor(1.0, 0.82, 0.0)
+    -- 4 edge strips instead of full screen overlay
+    local edges = {}
+
+    -- Top edge
+    edges[1] = flashFrame:CreateTexture(nil, "BACKGROUND")
+    edges[1]:SetTexture(1.0, 0.3, 0.0)
+    edges[1]:SetPoint("TOPLEFT", flashFrame, "TOPLEFT", 0, 0)
+    edges[1]:SetPoint("TOPRIGHT", flashFrame, "TOPRIGHT", 0, 0)
+    edges[1]:SetHeight(FLASH_EDGE_SIZE)
+    edges[1]:SetGradientAlpha("VERTICAL", 1, 0.3, 0, 0, 1, 0.3, 0, 1)
+
+    -- Bottom edge
+    edges[2] = flashFrame:CreateTexture(nil, "BACKGROUND")
+    edges[2]:SetTexture(1.0, 0.3, 0.0)
+    edges[2]:SetPoint("BOTTOMLEFT", flashFrame, "BOTTOMLEFT", 0, 0)
+    edges[2]:SetPoint("BOTTOMRIGHT", flashFrame, "BOTTOMRIGHT", 0, 0)
+    edges[2]:SetHeight(FLASH_EDGE_SIZE)
+    edges[2]:SetGradientAlpha("VERTICAL", 1, 0.3, 0, 1, 1, 0.3, 0, 0)
+
+    -- Left edge
+    edges[3] = flashFrame:CreateTexture(nil, "BACKGROUND")
+    edges[3]:SetTexture(1.0, 0.3, 0.0)
+    edges[3]:SetPoint("TOPLEFT", flashFrame, "TOPLEFT", 0, 0)
+    edges[3]:SetPoint("BOTTOMLEFT", flashFrame, "BOTTOMLEFT", 0, 0)
+    edges[3]:SetWidth(FLASH_EDGE_SIZE)
+    edges[3]:SetGradientAlpha("HORIZONTAL", 1, 0.3, 0, 1, 1, 0.3, 0, 0)
+
+    -- Right edge
+    edges[4] = flashFrame:CreateTexture(nil, "BACKGROUND")
+    edges[4]:SetTexture(1.0, 0.3, 0.0)
+    edges[4]:SetPoint("TOPRIGHT", flashFrame, "TOPRIGHT", 0, 0)
+    edges[4]:SetPoint("BOTTOMRIGHT", flashFrame, "BOTTOMRIGHT", 0, 0)
+    edges[4]:SetWidth(FLASH_EDGE_SIZE)
+    edges[4]:SetGradientAlpha("HORIZONTAL", 1, 0.3, 0, 0, 1, 0.3, 0, 1)
+
+    flashFrame.edges = edges
 
     flashFrame:SetAlpha(0)
     flashFrame:Hide()
 
     flashFrame:SetScript("OnUpdate", function()
-        if not flashFading then return end
-        flashAlpha = flashAlpha - 0.03
-        if flashAlpha <= 0 then
-            flashAlpha = 0
-            flashFading = false
+        if not flashActive then return end
+        flashElapsed = flashElapsed + arg1
+        local totalDuration = FLASH_PULSES * FLASH_PULSE_TIME * 2
+        if flashElapsed >= totalDuration then
+            flashActive = false
             this:SetAlpha(0)
             this:Hide()
             return
         end
-        this:SetAlpha(flashAlpha)
+        -- Calculate which pulse and phase we're in
+        local pulseTime = FLASH_PULSE_TIME * 2
+        local pos = math.mod(flashElapsed, pulseTime)
+        local alpha
+        if pos < FLASH_PULSE_TIME then
+            -- Fading in
+            alpha = (pos / FLASH_PULSE_TIME) * FLASH_MAX_ALPHA
+        else
+            -- Fading out
+            alpha = (1 - (pos - FLASH_PULSE_TIME) / FLASH_PULSE_TIME) * FLASH_MAX_ALPHA
+        end
+        this:SetAlpha(alpha)
     end)
 
     return flashFrame
 end
 
-local function DoScreenFlash(startAlpha)
+local function DoScreenFlash()
     local f = GetOrCreateFlashFrame()
-    flashAlpha = startAlpha or 0.4
-    flashFading = true
-    f:SetAlpha(flashAlpha)
+    flashElapsed = 0
+    flashActive = true
+    f:SetAlpha(0)
     f:Show()
 end
 
@@ -495,7 +542,7 @@ function HCTrader_CreateWatchlistPanel()
         elseif key == "alertCenterText" then
             UIErrorsFrame:AddMessage("HCTrader: " .. exampleMsg, 1.0, 0.5, 0.0, 1.0, 5)
         elseif key == "alertScreenFlash" then
-            DoScreenFlash(0.8)
+            DoScreenFlash()
         end
     end
 
