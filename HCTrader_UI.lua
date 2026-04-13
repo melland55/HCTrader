@@ -20,6 +20,18 @@ end
 
 function HCTrader_RefreshFilter()
     local S = HCTrader_State
+    local now = time()
+    local maxAge = 86400 -- 24 hours in seconds
+
+    -- Prune entries older than 24 hours
+    local i = table.getn(HCTrader_Items)
+    while i >= 1 do
+        if (now - HCTrader_Items[i].timestamp) > maxAge then
+            table.remove(HCTrader_Items, i)
+        end
+        i = i - 1
+    end
+
     S.filteredData = {}
     for i = 1, table.getn(HCTrader_Items) do
         local entry = HCTrader_Items[i]
@@ -330,7 +342,7 @@ function HCTrader_CreateUI()
 
         row.timeText = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         row.timeText:SetPoint("LEFT", row, "LEFT", 2, 0)
-        row.timeText:SetWidth(38)
+        row.timeText:SetWidth(52)
         row.timeText:SetJustifyH("LEFT")
         row.timeText:SetTextColor(0.6, 0.6, 0.6)
 
