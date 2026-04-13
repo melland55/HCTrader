@@ -5,14 +5,15 @@ A trade monitoring addon for [Turtle WoW](https://turtle-wow.org/) (1.12 client)
 ## Features
 
 - **Real-time item logging** — automatically captures item links from Hardcore chat
-- **Buy / Sell tabs** — WTS messages go to the Buy tab, WTB messages go to the Sell tab. Messages without a WTB/WTS tag are excluded
+- **Buy / Sell / Other tabs** — WTS messages go to the Buy tab, WTB messages go to the Sell tab. An optional Other tab shows untagged messages (enable in Settings)
 - **Level parsing** — extracts player level from messages (e.g. "22+", "9+-") to show levels instantly without a /who query. Falls back to auto /who when no level pattern is found
 - **Free item highlighting** — listings containing "free" are highlighted with a golden background
 - **Item interactions** — hover an item to see its tooltip; click to view the original message; ctrl-click to preview in the dressing room; shift-click to link in chat
 - **Seller interactions** — click a seller name to whisper; shift-click to /who. Guildmates are highlighted in green
 - **Search** — filter by item name or seller name
-- **Level filter** — show only sellers within your tradeable level range (Turtle WoW enforces a +-5 level restriction on trading). Configurable range, toggle on/off
+- **Level filter** — toggle +-5 from your level or set a custom range (e.g. 12-41) in Settings. Turtle WoW enforces a +-5 level restriction on trading
 - **Auto /who lookup** — automatically queries seller levels in the background when level can't be parsed from the message, respecting the 30-second server cooldown. Includes a cooldown bar with timer and queue display
+- **Settings panel** — configure level range, max items, expiry hours, window scale, highlight toggles, and more. Open via the gear button (*) or `/hct settings`
 - **Persistent data** — items, seller info (level, race, guild, zone), and settings are saved across reloads and relogs
 
 ## Installation
@@ -28,7 +29,9 @@ A trade monitoring addon for [Turtle WoW](https://turtle-wow.org/) (1.12 client)
 | `/hct` | Toggle the HCTrader window |
 | `/hct clear` | Clear all logged items and player data |
 | `/hct level` | Toggle the level filter on/off |
-| `/hct range <n>` | Set level filter range (default: +-5) |
+| `/hct range <n>` | Set level filter +-range (e.g. `/hct range 5`) |
+| `/hct range <min>-<max>` | Set custom level range (e.g. `/hct range 3-22`) |
+| `/hct settings` | Open the settings panel |
 
 ## Screenshots
 
