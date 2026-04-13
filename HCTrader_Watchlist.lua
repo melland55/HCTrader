@@ -7,12 +7,57 @@
 local watchlistIndex = {}
 local alertThrottle = {}
 
+-- Hidden tooltip for scanning item stats
+local scanTooltip = nil
+local SCAN_TOOLTIP_LINES = 30
+
+local function GetOrCreateScanTooltip()
+    if scanTooltip then return scanTooltip end
+    scanTooltip = CreateFrame("GameTooltip", "HCTraderScanTooltip", UIParent, "GameTooltipTemplate")
+    scanTooltip:SetOwner(UIParent, "ANCHOR_NONE")
+    scanTooltip:SetPoint("TOPLEFT", UIParent, "TOPLEFT", -1000, -1000)
+    scanTooltip:Hide()
+    return scanTooltip
+end
+
+-- Scan an item's tooltip text and return all lines as a table
+local function ScanItemTooltip(itemString)
+    local tip = GetOrCreateScanTooltip()
+    tip:SetOwner(UIParent, "ANCHOR_NONE")
+    tip:ClearLines()
+    tip:SetHyperlink(itemString)
+    local lines = {}
+    for i = 1, SCAN_TOOLTIP_LINES do
+        local left = getglobal("HCTraderScanTooltipTextLeft" .. i)
+        if left then
+            local text = left:GetText()
+            if text and text ~= "" then
+                table.insert(lines, text)
+            end
+        end
+    end
+    tip:Hide()
+    return lines
+end
+
+-- Check if an item's tooltip contains a stat phrase
+local function ItemHasStat(itemString, statPhrase)
+    local lines = ScanItemTooltip(itemString)
+    local phraseLower = string.lower(statPhrase)
+    for i = 1, table.getn(lines) do
+        if string.find(string.lower(lines[i]), phraseLower, 1, true) then
+            return true
+        end
+    end
+    return false
+end
+
 function HCTrader_Watchlist_BuildIndex()
     watchlistIndex = {}
     if not HCTrader_Watchlist then return end
     for i = 1, table.getn(HCTrader_Watchlist) do
         local entry = HCTrader_Watchlist[i]
-        if entry.itemId then
+        if entry.itemId and entry.itemId > 0 then
             watchlistIndex[entry.itemId] = true
         end
     end
@@ -22,7 +67,10 @@ function HCTrader_Watchlist_Add(itemId, itemName, itemLink)
     if not itemId or not itemName then return end
     -- Deduplicate
     for i = 1, table.getn(HCTrader_Watchlist) do
-        if HCTrader_Watchlist[i].itemId == itemId then return end
+        local w = HCTrader_Watchlist[i]
+        if w.itemId == itemId and itemId ~= -1 then return end
+        -- Deduplicate stat watches by name
+        if itemId == -1 and w.itemId == -1 and string.lower(w.itemName) == string.lower(itemName) then return end
     end
     table.insert(HCTrader_Watchlist, {
         itemId = itemId,
@@ -33,11 +81,20 @@ function HCTrader_Watchlist_Add(itemId, itemName, itemLink)
     HCTrader_Watchlist_RefreshPanel()
 end
 
-function HCTrader_Watchlist_Remove(itemId)
+function HCTrader_Watchlist_Remove(itemId, itemName)
     for i = 1, table.getn(HCTrader_Watchlist) do
-        if HCTrader_Watchlist[i].itemId == itemId then
-            table.remove(HCTrader_Watchlist, i)
-            break
+        local w = HCTrader_Watchlist[i]
+        if w.itemId == itemId then
+            -- For stat watches (-1), also match by name
+            if itemId == -1 then
+                if w.itemName == itemName then
+                    table.remove(HCTrader_Watchlist, i)
+                    break
+                end
+            else
+                table.remove(HCTrader_Watchlist, i)
+                break
+            end
         end
     end
     HCTrader_Watchlist_BuildIndex()
@@ -147,6 +204,7 @@ function HCTrader_Watchlist_CheckAlert(entry)
     if not entry then return end
     local matched = false
     local throttleKey = nil
+    local matchReason = nil
 
     -- Match by item ID
     if entry.itemString then
@@ -175,6 +233,21 @@ function HCTrader_Watchlist_CheckAlert(entry)
         end
     end
 
+    -- Match by stat watch (tooltip scanning, itemId == -1)
+    if not matched and entry.itemString then
+        for i = 1, table.getn(HCTrader_Watchlist) do
+            local w = HCTrader_Watchlist[i]
+            if w.itemId == -1 and w.itemName then
+                if ItemHasStat(entry.itemString, w.itemName) then
+                    matched = true
+                    throttleKey = "stat:" .. w.itemName .. ":" .. entry.itemString
+                    matchReason = w.itemName
+                    break
+                end
+            end
+        end
+    end
+
     if not matched then return end
 
     -- Throttle: no repeat alert for same item within configured seconds
@@ -185,6 +258,9 @@ function HCTrader_Watchlist_CheckAlert(entry)
 
     local link = entry.itemLink or entry.itemName
     local alertMsg = link .. " listed by " .. entry.sender
+    if matchReason then
+        alertMsg = alertMsg .. " (has " .. matchReason .. ")"
+    end
 
     -- Sound
     local snd = HCTrader_Settings.alertSound or "RaidWarning"
@@ -214,6 +290,66 @@ function HCTrader_Watchlist_CheckAlert(entry)
 end
 
 -- ============================================================
+-- Stat Modifier List (for stat watch suggestions)
+-- ============================================================
+
+local STAT_MODIFIERS = {
+    -- Spell damage
+    "+Shadow Damage",
+    "+Fire Damage",
+    "+Frost Damage",
+    "+Nature Damage",
+    "+Arcane Damage",
+    "+Damage and Healing Spells",
+    "+Healing Spells",
+    -- Melee / ranged
+    "+Attack Power",
+    "+Ranged Attack Power",
+    "+Defense",
+    "+Dodge",
+    "+Block",
+    "+Parry",
+    -- Hit and crit
+    "+Hit",
+    "+Critical Strike",
+    "+Spell Critical Strike",
+    -- Regen
+    "+Health every 5 sec",
+    "+Mana every 5 sec",
+    -- Resistances
+    "+Fire Resistance",
+    "+Frost Resistance",
+    "+Nature Resistance",
+    "+Shadow Resistance",
+    "+Arcane Resistance",
+    -- Equip effects
+    "Increases damage done by Shadow",
+    "Increases damage done by Fire",
+    "Increases damage done by Frost",
+    "Increases damage done by Nature",
+    "Increases damage done by Arcane",
+    "Increases healing done by spells",
+    "Restores mana per 5 sec",
+    "Improves your chance to hit",
+    "Improves your chance to get a critical strike",
+    "Increases your chance to dodge",
+    "Increases your chance to block",
+    "Increases your chance to parry",
+    "Increases defense",
+}
+
+local function SearchStatModifiers(query)
+    local results = {}
+    local queryLower = string.lower(query)
+    for i = 1, table.getn(STAT_MODIFIERS) do
+        if string.find(string.lower(STAT_MODIFIERS[i]), queryLower, 1, true) then
+            table.insert(results, { isStat = true, statName = STAT_MODIFIERS[i] })
+        end
+    end
+    return results
+end
+
+-- ============================================================
 -- Item Search (pfQuest integration)
 -- ============================================================
 
@@ -226,17 +362,25 @@ end
 
 function HCTrader_Watchlist_Search(query)
     if not query or string.len(query) < 2 then return nil end
-    if not HCTrader_Watchlist_HasPfDB() then return nil end
 
     local results = {}
-    local queryLower = string.lower(query)
-    local count = 0
 
-    for id, name in pfDB.items.enUS do
-        if name and string.find(string.lower(name), queryLower, 1, true) then
-            table.insert(results, { itemId = id, itemName = name })
-            count = count + 1
-            if count >= 50 then break end
+    -- Stat modifiers first (always available)
+    local statResults = SearchStatModifiers(query)
+    for i = 1, table.getn(statResults) do
+        table.insert(results, statResults[i])
+    end
+
+    -- pfDB items after stats
+    if HCTrader_Watchlist_HasPfDB() then
+        local queryLower = string.lower(query)
+        local count = 0
+        for id, name in pfDB.items.enUS do
+            if name and string.find(string.lower(name), queryLower, 1, true) then
+                table.insert(results, { itemId = id, itemName = name })
+                count = count + 1
+                if count >= 50 then break end
+            end
         end
     end
 
@@ -332,9 +476,9 @@ function HCTrader_CreateWatchlistPanel()
     searchLabel:SetTextColor(0.5, 0.5, 0.5)
 
     if HCTrader_Watchlist_HasPfDB() then
-        searchLabel:SetText("Search items...")
+        searchLabel:SetText("Search or stat:healing...")
     else
-        searchLabel:SetText("Shift-click an item or type name...")
+        searchLabel:SetText("Shift-click or stat:healing...")
     end
 
     search:SetScript("OnTextChanged", function()
@@ -358,7 +502,7 @@ function HCTrader_CreateWatchlistPanel()
             end
         end
 
-        -- Search pfDB
+        -- Search stats + pfDB
         if text and string.len(text) >= 2 then
             searchResults = HCTrader_Watchlist_Search(text) or {}
         else
@@ -368,11 +512,21 @@ function HCTrader_CreateWatchlistPanel()
     end)
     search:SetScript("OnEscapePressed", function() this:ClearFocus() end)
     search:SetScript("OnEnterPressed", function()
-        -- If no pfDB and text entered, add as text match
         local text = this:GetText()
-        if text and text ~= "" and not HCTrader_Watchlist_HasPfDB() then
-            HCTrader_Watchlist_Add(0, text, nil)
-            this:SetText("")
+        if text and text ~= "" then
+            -- Check for stat: prefix
+            local _, _, statPhrase = string.find(text, "^stat:%s*(.+)")
+            if statPhrase and statPhrase ~= "" then
+                HCTrader_Watchlist_Add(-1, statPhrase, nil)
+                this:SetText("")
+                this:ClearFocus()
+                return
+            end
+            -- If no pfDB, add as text match
+            if not HCTrader_Watchlist_HasPfDB() then
+                HCTrader_Watchlist_Add(0, text, nil)
+                this:SetText("")
+            end
         end
         this:ClearFocus()
     end)
@@ -426,15 +580,25 @@ function HCTrader_CreateWatchlistPanel()
             local idx = this.resultIndex
             if idx > 0 and searchResults[idx] then
                 local r = searchResults[idx]
-                local link = TryGetLink(r.itemId)
-                HCTrader_Watchlist_Add(r.itemId, r.itemName, link)
+                if r.isStat then
+                    HCTrader_Watchlist_Add(-1, r.statName, nil)
+                else
+                    local link = TryGetLink(r.itemId)
+                    HCTrader_Watchlist_Add(r.itemId, r.itemName, link)
+                end
             end
         end)
         row:SetScript("OnEnter", function()
             local idx = this.resultIndex
             if idx > 0 and searchResults[idx] then
+                local r = searchResults[idx]
                 GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
-                GameTooltip:SetHyperlink("item:" .. searchResults[idx].itemId .. ":0:0:0")
+                if r.isStat then
+                    GameTooltip:AddLine("Stat Watch: " .. r.statName)
+                    GameTooltip:AddLine("Click to watch for items with this stat.", 1, 1, 1, true)
+                else
+                    GameTooltip:SetHyperlink("item:" .. r.itemId .. ":0:0:0")
+                end
                 GameTooltip:Show()
             end
         end)
@@ -486,7 +650,13 @@ function HCTrader_CreateWatchlistPanel()
 
         row.itemBtn:SetScript("OnEnter", function()
             local entry = this.row.watchEntry
-            if entry and entry.itemId and entry.itemId > 0 then
+            if not entry then return end
+            if entry.itemId == -1 then
+                GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
+                GameTooltip:AddLine("Stat Watch: " .. entry.itemName)
+                GameTooltip:AddLine("Alerts when any listed item has this stat in its tooltip.", 1, 1, 1, true)
+                GameTooltip:Show()
+            elseif entry.itemId and entry.itemId > 0 then
                 GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
                 GameTooltip:SetHyperlink("item:" .. entry.itemId .. ":0:0:0")
                 GameTooltip:Show()
@@ -504,7 +674,7 @@ function HCTrader_CreateWatchlistPanel()
         row.removeBtn:SetScript("OnClick", function()
             local entry = this.row.watchEntry
             if entry then
-                HCTrader_Watchlist_Remove(entry.itemId)
+                HCTrader_Watchlist_Remove(entry.itemId, entry.itemName)
             end
         end)
 
@@ -661,7 +831,11 @@ function HCTrader_Watchlist_UpdateSearchResults()
         local idx = offset + i
         if idx <= numResults then
             local r = searchResults[idx]
-            row.text:SetText(GetItemDisplay(r.itemId, r.itemName))
+            if r.isStat then
+                row.text:SetText("|cFFCC77FFstat:" .. r.statName .. "|r")
+            else
+                row.text:SetText(GetItemDisplay(r.itemId, r.itemName))
+            end
             row.resultIndex = idx
             row:Show()
         else
@@ -684,11 +858,17 @@ function HCTrader_Watchlist_UpdateList()
         if not row then break end
         if idx <= numEntries then
             local entry = HCTrader_Watchlist[idx]
-            -- Try to resolve link if we don't have one
-            if not entry.itemLink and entry.itemId and entry.itemId > 0 then
-                entry.itemLink = TryGetLink(entry.itemId)
+            local display
+            if entry.itemId == -1 then
+                -- Stat watch: show in purple with prefix
+                display = "|cFFCC77FFStat: " .. entry.itemName .. "|r"
+            else
+                -- Try to resolve link if we don't have one
+                if not entry.itemLink and entry.itemId and entry.itemId > 0 then
+                    entry.itemLink = TryGetLink(entry.itemId)
+                end
+                display = entry.itemLink or GetItemDisplay(entry.itemId or 0, entry.itemName)
             end
-            local display = entry.itemLink or GetItemDisplay(entry.itemId or 0, entry.itemName)
             row.itemBtn.text:SetText(display)
             row.watchEntry = entry
             row:Show()
