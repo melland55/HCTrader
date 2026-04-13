@@ -13,7 +13,7 @@ A trade monitoring addon for [Turtle WoW](https://turtle-wow.org/) (1.12 client)
 - **Search** — filter by item name or seller name
 - **Level filter** — toggle +-5 from your level or set a custom range (e.g. 12-41) in Settings. Turtle WoW enforces a +-5 level restriction on trading
 - **Auto /who lookup** — automatically queries seller levels in the background when level can't be parsed from the message, respecting the 30-second server cooldown. Includes a cooldown bar with timer and queue display
-- **Item watchlist** — add items to a watchlist and get notified when they appear in chat. Search pfQuest's item database (17,700 items) or shift-click/type item names. Configurable notifications: chat message, raid warning text, center screen text, screen flash, and selectable alert sounds. Open via the Watchlist button or `/hct watch`
+- **Item watchlist** — add items to a watchlist and get notified when they appear in chat. Search pfQuest's item database (17,700 items) or shift-click/type item names. Also supports stat watches (e.g. `+Shadow Damage`, `+Healing Spells`) that scan item tooltips — search for a stat keyword and pick from the predefined list, or type `stat:custom phrase`. Configurable notifications: chat message, raid warning text, center screen text, screen flash, and selectable alert sounds. Open via the Watchlist button or `/hct watch`
 - **Settings panel** — configure level range, max items, expiry hours, window scale, highlight toggles, and more. Open via the gear button (*) or `/hct settings`
 - **Persistent data** — items, seller info (level, race, guild, zone), watchlist, and settings are saved across reloads and relogs
 
