@@ -192,6 +192,8 @@ function HCTrader_CreateUI()
     end)
     gear:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+    -- Watchlist button is created after the search box below
+
     -- Tab buttons (Buy / Sell / Other)
     local tabNames = { "buy", "sell", "other" }
     local tabLabels = { "Buy", "Sell", "Other" }
@@ -289,7 +291,7 @@ function HCTrader_CreateUI()
 
     -- Search box
     local search = CreateFrame("EditBox", "HCTraderSearch", f, "InputBoxTemplate")
-    search:SetWidth(180)
+    search:SetWidth(120)
     search:SetHeight(20)
     search:SetPoint("TOPLEFT", f, "TOPLEFT", 25, -37)
     search:SetAutoFocus(false)
@@ -313,6 +315,22 @@ function HCTrader_CreateUI()
     end)
     search:SetScript("OnEscapePressed", function() this:ClearFocus() end)
     search:SetScript("OnEnterPressed", function() this:ClearFocus() end)
+
+    -- Watchlist button (next to search bar)
+    local watchBtn = CreateFrame("Button", "HCTraderWatchBtn", f, "UIPanelButtonTemplate")
+    watchBtn:SetWidth(65)
+    watchBtn:SetHeight(20)
+    watchBtn:SetPoint("LEFT", search, "RIGHT", 4, 0)
+    watchBtn:SetText("Watchlist")
+    watchBtn:SetScript("OnClick", function() HCTrader_ToggleWatchlist() end)
+    watchBtn:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Watchlist")
+        GameTooltip:AddLine("Get alerts when watched items appear", 1, 1, 1, true)
+        GameTooltip:AddLine("/hct watch", 0.5, 0.5, 0.5)
+        GameTooltip:Show()
+    end)
+    watchBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     -- /who cooldown bar
     local whoBar = CreateFrame("StatusBar", "HCTraderWhoBar", f)
