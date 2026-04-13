@@ -9,6 +9,11 @@ function HCTrader_PassesLevelFilter(entry)
     if not S.levelFilterEnabled then return true end
     local sellerLevel = HCTrader_GetLevel(entry.sender)
     if not sellerLevel then return false end
+    if HCTrader_Settings.customRange then
+        local minLvl = HCTrader_Settings.levelMin or 1
+        local maxLvl = HCTrader_Settings.levelMax or 60
+        return sellerLevel >= minLvl and sellerLevel <= maxLvl
+    end
     local myLevel = UnitLevel("player")
     local range = HCTrader_Settings.levelRange or 5
     return math.abs(sellerLevel - myLevel) <= range
@@ -21,7 +26,7 @@ end
 function HCTrader_RefreshFilter()
     local S = HCTrader_State
     local now = time()
-    local maxAge = 86400 -- 24 hours in seconds
+    local maxAge = (HCTrader_Settings.expiryHours or 24) * 3600
 
     -- Prune entries older than 24 hours
     local i = table.getn(HCTrader_Items)
@@ -83,18 +88,46 @@ end
 function HCTrader_UpdateLevelButton()
     local range = HCTrader_Settings.levelRange or 5
     if HCTrader_State.levelFilterEnabled then
-        HCTraderLevelBtn:SetText("|cFF00FF00+-" .. range .. "|r")
+        HCTraderLevelBtn:SetText("All")
     else
         HCTraderLevelBtn:SetText("+-" .. range)
+    end
+    if HCTraderLevelBtnRange then
+        if HCTrader_Settings.customRange then
+            local minLvl = HCTrader_Settings.levelMin or 1
+            local maxLvl = HCTrader_Settings.levelMax or 60
+            HCTraderLevelBtnRange:SetText(minLvl .. "-" .. maxLvl)
+        elseif HCTrader_State.levelFilterEnabled then
+            local myLevel = UnitLevel("player") or 1
+            local range = HCTrader_Settings.levelRange or 5
+            local lo = myLevel - range
+            local hi = myLevel + range
+            if lo < 1 then lo = 1 end
+            if hi > 60 then hi = 60 end
+            HCTraderLevelBtnRange:SetText(lo .. "-" .. hi)
+        else
+            HCTraderLevelBtnRange:SetText("1-60")
+        end
+        HCTraderLevelBtnRange:Show()
     end
 end
 
 function HCTrader_UpdateTabs()
     local S = HCTrader_State
-    local tabs = { "buy", "sell" }
-    for i = 1, 2 do
+    local tabs = { "buy", "sell", "other" }
+    for i = 1, 3 do
         local btn = getglobal("HCTraderTab" .. tabs[i])
         if btn then
+            if tabs[i] == "other" then
+                if HCTrader_Settings.showUntagged then
+                    btn:Show()
+                else
+                    btn:Hide()
+                    if S.activeTab == "other" then
+                        S.activeTab = "buy"
+                    end
+                end
+            end
             if S.activeTab == tabs[i] then
                 btn:SetTextColor(1, 1, 1)
                 btn:LockHighlight()
@@ -144,11 +177,26 @@ function HCTrader_CreateUI()
     title:SetPoint("TOP", f, "TOP", 0, -15)
     title:SetText("HCTrader")
 
-    -- Tab buttons (Buy / Sell)
-    local tabNames = { "buy", "sell" }
-    local tabLabels = { "Buy", "Sell" }
+    -- Settings button (classic-style button, bottom-right)
+    local gear = CreateFrame("Button", "HCTraderGearBtn", f, "UIPanelButtonTemplate")
+    gear:SetWidth(20)
+    gear:SetHeight(20)
+    gear:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -12, 12)
+    gear:SetText("*")
+    gear:SetScript("OnClick", function() HCTrader_ToggleOptions() end)
+    gear:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Settings")
+        GameTooltip:AddLine("/hct settings", 0.5, 0.5, 0.5)
+        GameTooltip:Show()
+    end)
+    gear:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    -- Tab buttons (Buy / Sell / Other)
+    local tabNames = { "buy", "sell", "other" }
+    local tabLabels = { "Buy", "Sell", "Other" }
     local prevTab = nil
-    for i = 1, 2 do
+    for i = 1, 3 do
         local tab = CreateFrame("Button", "HCTraderTab" .. tabNames[i], f)
         tab:SetWidth(40)
         tab:SetHeight(18)
@@ -202,23 +250,41 @@ function HCTrader_CreateUI()
 
     -- Level filter button
     local lvlBtn = CreateFrame("Button", "HCTraderLevelBtn", f, "UIPanelButtonTemplate")
-    lvlBtn:SetWidth(70)
+    lvlBtn:SetWidth(45)
     lvlBtn:SetHeight(22)
     lvlBtn:SetPoint("RIGHT", clear, "LEFT", -5, 0)
     lvlBtn:SetScript("OnClick", function()
+        -- Clear custom range first, then toggle normally
+        if HCTrader_Settings.customRange then
+            HCTrader_Settings.customRange = false
+            HCTrader_Settings.levelMin = 1
+            HCTrader_Settings.levelMax = 60
+        end
         S.levelFilterEnabled = not S.levelFilterEnabled
         HCTrader_Settings.levelFilter = S.levelFilterEnabled
         HCTrader_UpdateLevelButton()
         HCTrader_RefreshFilter()
+        HCTrader_RefreshOptionsPanel()
     end)
     lvlBtn:SetScript("OnEnter", function()
         GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
         GameTooltip:AddLine("Level Filter")
-        GameTooltip:AddLine("Show sellers within +-" .. (HCTrader_Settings.levelRange or 5) .. " of your level", 1, 1, 1)
-        GameTooltip:AddLine("/hct range <num> to change", 0.5, 0.5, 0.5)
+        if HCTrader_Settings.customRange then
+            GameTooltip:AddLine("Custom: " .. (HCTrader_Settings.levelMin or 1) .. "-" .. (HCTrader_Settings.levelMax or 60), 1, 1, 1)
+        else
+            GameTooltip:AddLine("+-" .. (HCTrader_Settings.levelRange or 5) .. " from your level", 1, 1, 1)
+        end
+        GameTooltip:AddLine("Custom range in Settings", 0.5, 0.5, 0.5)
         GameTooltip:Show()
     end)
     lvlBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    -- Grey custom range text below the level button
+    local lvlRange = lvlBtn:CreateFontString("HCTraderLevelBtnRange", "OVERLAY", "GameFontNormalSmall")
+    lvlRange:SetPoint("TOP", lvlBtn, "BOTTOM", 0, -1)
+    lvlRange:SetTextColor(0.5, 0.5, 0.5)
+    lvlRange:Hide()
+
     HCTrader_UpdateLevelButton()
 
     -- Search box
@@ -515,7 +581,7 @@ function HCTrader_ScrollUpdate()
             row.sellerBtn.text:SetText(entry.sender)
             local sellerGuild = HCTrader_GetPlayerField(entry.sender, "guild")
             local myGuild = GetGuildInfo("player")
-            if myGuild and sellerGuild and sellerGuild == myGuild then
+            if HCTrader_Settings.highlightGuild and myGuild and sellerGuild and sellerGuild == myGuild then
                 row.sellerBtn.text:SetTextColor(0.2, 1.0, 0.2)
             else
                 row.sellerBtn.text:SetTextColor(0.8, 0.8, 0.2)
@@ -537,7 +603,7 @@ function HCTrader_ScrollUpdate()
             else
                 row.factionIcon:Hide()
             end
-            if entry.message and string.find(string.lower(entry.message), "free") then
+            if HCTrader_Settings.highlightFree and entry.message and string.find(string.lower(entry.message), "free") then
                 row.freeBg:Show()
             else
                 row.freeBg:Hide()
