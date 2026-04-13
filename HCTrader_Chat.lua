@@ -26,8 +26,14 @@ function HCTrader_CheckMessage(msg)
         tradeType = "buy"
     end
 
-    -- Skip messages with no WTB/WTS tag
-    if not tradeType then return end
+    -- Skip messages with no WTB/WTS tag (unless showUntagged is enabled)
+    if not tradeType then
+        if HCTrader_Settings.showUntagged then
+            tradeType = "other"
+        else
+            return
+        end
+    end
 
     -- Parse level from message (e.g. "9+-", "22+", "45-+", "10+/-")
     -- Strip item links first so numbers inside links don't match
@@ -91,8 +97,9 @@ function HCTrader_CheckMessage(msg)
         searchStart = endPos + 1
     end
 
-    -- Cap at 500
-    while table.getn(HCTrader_Items) > 500 do
+    -- Cap at maxItems setting
+    local maxItems = HCTrader_Settings.maxItems or 500
+    while table.getn(HCTrader_Items) > maxItems do
         table.remove(HCTrader_Items)
     end
 
