@@ -85,6 +85,8 @@ function HCTrader_Init()
     if not HCTrader_Items then HCTrader_Items = {} end
     if not HCTrader_Settings then HCTrader_Settings = {} end
     if not HCTrader_Players then HCTrader_Players = {} end
+    if not HCTrader_Watchlist then HCTrader_Watchlist = {} end
+    HCTrader_Watchlist_BuildIndex()
 
     -- Apply defaults for any missing settings
     for k, v in HCTrader_Defaults do
@@ -143,7 +145,10 @@ function HCTrader_Init()
 
     -- Apply saved window scale
     if HCTraderFrame and HCTrader_Settings.windowScale then
-        HCTraderFrame:SetScale(HCTrader_Settings.windowScale / 100)
+        local s = HCTrader_Settings.windowScale / 100
+        HCTraderFrame:SetScale(s)
+        if HCTraderOptionsFrame then HCTraderOptionsFrame:SetScale(s) end
+        if HCTraderWatchlistFrame then HCTraderWatchlistFrame:SetScale(s) end
     end
 
     DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00HCTrader|r loaded. Type |cFFFFFF00/hct|r to toggle window.")
@@ -193,6 +198,8 @@ function HCTrader_Init()
             end
         elseif msg == "settings" or msg == "options" or msg == "config" then
             HCTrader_ToggleOptions()
+        elseif msg == "watchlist" or msg == "watch" then
+            HCTrader_ToggleWatchlist()
         elseif msg == "levels" then
             DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00HCTrader|r: Player cache (queue: " .. table.getn(S.whoQueue) .. ", processing: " .. tostring(S.whoProcessing) .. "):")
             for name, info in S.playerCache do

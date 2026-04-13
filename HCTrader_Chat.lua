@@ -94,6 +94,9 @@ function HCTrader_CheckMessage(msg)
         }
         table.insert(HCTrader_Items, 1, entry)
 
+        -- Check watchlist for alerts
+        HCTrader_Watchlist_CheckAlert(entry)
+
         searchStart = endPos + 1
     end
 

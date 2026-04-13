@@ -3,10 +3,11 @@
 ## Notes: Logs item links from [Hardcore] chat into a browsable, searchable list.
 ## Author: Andre
 ## Version: 1.0.0
-## SavedVariables: HCTrader_Items, HCTrader_Settings, HCTrader_Players
+## SavedVariables: HCTrader_Items, HCTrader_Settings, HCTrader_Players, HCTrader_Watchlist
 
 HCTrader.lua
 HCTrader_Data.lua
 HCTrader_Chat.lua
 HCTrader_Options.lua
+HCTrader_Watchlist.lua
 HCTrader_UI.lua
