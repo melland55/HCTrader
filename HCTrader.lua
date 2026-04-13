@@ -85,16 +85,15 @@ function HCTrader_Init()
     if not HCTrader_Items then HCTrader_Items = {} end
     if not HCTrader_Settings then HCTrader_Settings = {} end
     if not HCTrader_Players then HCTrader_Players = {} end
-    if not HCTrader_Settings.levelRange then
-        HCTrader_Settings.levelRange = 5
+
+    -- Apply defaults for any missing settings
+    for k, v in HCTrader_Defaults do
+        if HCTrader_Settings[k] == nil then
+            HCTrader_Settings[k] = v
+        end
     end
-    if HCTrader_Settings.levelFilter == nil then
-        HCTrader_Settings.levelFilter = false
-    end
+
     S.levelFilterEnabled = HCTrader_Settings.levelFilter
-    if HCTrader_Settings.whoAutoFetch == nil then
-        HCTrader_Settings.whoAutoFetch = true
-    end
     S.whoAutoFetch = HCTrader_Settings.whoAutoFetch
 
     -- Point playerCache at the persisted table and clean transient level states
@@ -142,6 +141,11 @@ function HCTrader_Init()
     HCTrader_CreateUI()
     HCTrader_RefreshFilter()
 
+    -- Apply saved window scale
+    if HCTraderFrame and HCTrader_Settings.windowScale then
+        HCTraderFrame:SetScale(HCTrader_Settings.windowScale / 100)
+    end
+
     DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00HCTrader|r loaded. Type |cFFFFFF00/hct|r to toggle window.")
 
     SLASH_HCTRADER1 = "/hctrader"
@@ -157,17 +161,38 @@ function HCTrader_Init()
             S.levelFilterEnabled = not S.levelFilterEnabled
             HCTrader_Settings.levelFilter = S.levelFilterEnabled
             local state = S.levelFilterEnabled and "ON" or "OFF"
-            DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00HCTrader|r: Level filter " .. state .. " (+-" .. HCTrader_Settings.levelRange .. ")")
+            DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00HCTrader|r: Level filter " .. state .. " (" .. (HCTrader_Settings.levelMin or 1) .. "-" .. (HCTrader_Settings.levelMax or 60) .. ")")
             HCTrader_UpdateLevelButton()
             HCTrader_RefreshFilter()
         elseif string.find(msg, "^range%s+") then
-            local _, _, num = string.find(msg, "^range%s+(%d+)")
-            if num then
-                HCTrader_Settings.levelRange = tonumber(num)
-                DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00HCTrader|r: Level range set to +-" .. num)
+            local _, _, minStr, maxStr = string.find(msg, "^range%s+(%d+)%s*-%s*(%d+)")
+            if minStr and maxStr then
+                local minVal = tonumber(minStr)
+                local maxVal = tonumber(maxStr)
+                if minVal < 1 then minVal = 1 end
+                if maxVal > 60 then maxVal = 60 end
+                if minVal > maxVal then minVal = maxVal end
+                HCTrader_Settings.levelMin = minVal
+                HCTrader_Settings.levelMax = maxVal
+                DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00HCTrader|r: Custom level range set to " .. minVal .. "-" .. maxVal)
                 HCTrader_UpdateLevelButton()
                 HCTrader_RefreshFilter()
+            else
+                -- Single number sets the +-N range and clears custom
+                local _, _, num = string.find(msg, "^range%s+(%d+)")
+                if num then
+                    HCTrader_Settings.levelRange = tonumber(num)
+                    HCTrader_Settings.levelMin = 1
+                    HCTrader_Settings.levelMax = 60
+                    DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00HCTrader|r: Level range set to +-" .. num)
+                    HCTrader_UpdateLevelButton()
+                    HCTrader_RefreshFilter()
+                else
+                    DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00HCTrader|r: Usage: /hct range 5 or /hct range 3-22")
+                end
             end
+        elseif msg == "settings" or msg == "options" or msg == "config" then
+            HCTrader_ToggleOptions()
         elseif msg == "levels" then
             DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00HCTrader|r: Player cache (queue: " .. table.getn(S.whoQueue) .. ", processing: " .. tostring(S.whoProcessing) .. "):")
             for name, info in S.playerCache do

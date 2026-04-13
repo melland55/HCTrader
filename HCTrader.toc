@@ -8,4 +8,5 @@
 HCTrader.lua
 HCTrader_Data.lua
 HCTrader_Chat.lua
+HCTrader_Options.lua
 HCTrader_UI.lua
